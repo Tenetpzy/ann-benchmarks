@@ -58,6 +58,10 @@ def compute_metrics(true_nn_distances, res, metric_1, metric_2, recompute=False)
             true_nn_distances, run_distances, metrics_cache, times, properties
         )
 
+        # Skip None values (only for hnswlib-specific metrics)
+        if metric_1_value is None or metric_2_value is None:
+            continue
+
         print("%3d: %80s %12.3f %12.3f" % (i, algo_name, metric_1_value, metric_2_value))
 
         all_results.setdefault(algo, []).append((algo, algo_name, metric_1_value, metric_2_value))

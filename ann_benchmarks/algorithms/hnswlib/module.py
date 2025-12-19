@@ -29,5 +29,25 @@ class HnswLib(BaseANN):
         # print(self.p.knn_query(np.expand_dims(v,axis=0), k = n)[0])
         return self.p.knn_query(np.expand_dims(v, axis=0), k=n)[0][0]
 
+    def get_additional(self):
+        """从C++ binding获取性能指标"""
+        # 建议的C++ binding方法名称（需要在Python binding中实现）：
+        # - get_cache_hit_rate(): 返回浮点数百分比
+        # - get_io_operations(): 返回整数I/O操作数
+        # - get_memory_transfer_kb(): 返回浮点数KB单位
+
+        return {
+            "cache_hit_rate": float(self.p.get_cache_hit_rate()),
+            "io_operations": int(self.p.get_io_operations()),
+            "memory_transfer_kb": float(self.p.get_memory_transfer_kb())
+        }
+
+    def done(self):
+        """清理资源，C++ binding需要调用清理方法"""
+        # 建议在C++ binding中实现：reset_counters()
+        if hasattr(self.p, 'reset_counters'):
+            self.p.reset_counters()
+        super().done()
+
     def freeIndex(self):
         del self.p
