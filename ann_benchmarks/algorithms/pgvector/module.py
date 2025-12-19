@@ -23,11 +23,14 @@ target database, if it has not been already created.
 """
 
 import os
+import pwd
+import shutil
 import subprocess
 import sys
 import threading
 import time
 
+from ann_benchmarks.constants import SIM_SSD_DIR_CONTAINER
 import pgvector.psycopg
 import psycopg
 
@@ -262,6 +265,13 @@ class PGVector(BaseANN):
             psycopg_connect_kwargs[arg_name] = get_pg_conn_param(
                 arg_name, 'ann')
 
+        # 限制buffer pool内存使用量
+        pg_conf_path = "/var/lib/postgresql/16/main/postgresql.auto.conf"
+        subprocess.run(
+            f"sed -i \"s/shared_buffers = '4GB'/shared_buffers = '64MB'/\" {pg_conf_path}", 
+            shell=True, check=True
+        )
+
         # If host/port are not specified, leave the default choice to the
         # psycopg driver.
         pg_host: Optional[str] = get_pg_conn_param('host')
@@ -286,6 +296,35 @@ class PGVector(BaseANN):
             print(
                 "Assuming that PostgreSQL service is managed externally. "
                 "Not attempting to start the service.")
+
+        # 创建表空间目录
+        tablespace_dir = os.path.join(SIM_SSD_DIR_CONTAINER, "pg_data")
+        print(f"Preparing tablespace directory at: {tablespace_dir}")
+        if os.path.exists(tablespace_dir):
+            try:
+                shutil.rmtree(tablespace_dir)
+            except:
+                pass
+        os.makedirs(tablespace_dir, exist_ok=True)
+        pg_user = pwd.getpwnam('postgres')
+        pg_uid = pg_user.pw_uid
+        pg_gid = pg_user.pw_gid
+        os.chown(tablespace_dir, pg_uid, pg_gid)
+        os.chmod(tablespace_dir, 0o700) # PG 要求必须是 700
+
+        # 创建表空间，目的是将向量索引写入模拟的SSD
+        # 修改创建索引时的内存限制，和容器的内存限制匹配
+        with psycopg.connect(user="postgres", dbname="postgres", autocommit=True) as admin_conn:
+            with admin_conn.cursor() as admin_cur:
+                # admin_cur.execute("ALTER USER ann SET maintenance_work_mem = '256MB'")
+            
+                try:
+                    admin_cur.execute(f"CREATE TABLESPACE vector_ssd LOCATION '{tablespace_dir}';")
+                    print("Tablespace vector_ssd created successfully.")
+                except psycopg.errors.DuplicateObject:
+                    print("Tablespace vector_ssd already exists.")
+                
+                admin_cur.execute("GRANT CREATE ON TABLESPACE vector_ssd TO ann")
 
         conn = psycopg.connect(**psycopg_connect_kwargs)
         self.ensure_pgvector_extension_created(conn)
@@ -312,7 +351,7 @@ class PGVector(BaseANN):
         sys.stdout.flush()
         create_index_str = \
             "CREATE INDEX ON items USING hnsw (embedding vector_%s_ops) " \
-            "WITH (m = %d, ef_construction = %d)" % (
+            "WITH (m = %d, ef_construction = %d) TABLESPACE vector_ssd" % (
                 self.get_metric_properties()["ops_type"],
                 self._m,
                 self._ef_construction

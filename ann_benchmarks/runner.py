@@ -17,6 +17,7 @@ from .definitions import Definition, instantiate_algorithm
 from .datasets import DATASETS, get_dataset
 from .distance import dataset_transform, metrics
 from .results import store_results
+from .constants import SIM_SSD_DIR_HOST, SIM_SSD_DIR_CONTAINER
 
 
 def run_individual_query(algo: BaseANN, X_train: numpy.array, X_test: numpy.array, distance: str, count: int, 
@@ -327,6 +328,7 @@ def run_docker(
     client = docker.from_env()
     if mem_limit is None:
         mem_limit = psutil.virtual_memory().available
+    # mem_limit = 1024 * 1024 * 1024
 
     container = client.containers.run(
         definition.docker_tag,
@@ -336,6 +338,7 @@ def run_docker(
             os.path.abspath("ann_benchmarks"): {"bind": "/home/app/ann_benchmarks", "mode": "ro"},
             os.path.abspath("data"): {"bind": "/home/app/data", "mode": "ro"},
             os.path.abspath("results"): {"bind": "/home/app/results", "mode": "rw"},
+            os.path.abspath(SIM_SSD_DIR_HOST): {"bind": SIM_SSD_DIR_CONTAINER, "mode": "rw"},
         },
         network_mode="host",
         cpuset_cpus=cpu_limit,

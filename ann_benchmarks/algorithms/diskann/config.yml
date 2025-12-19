@@ -10,21 +10,21 @@ float:
       vamana_125_32_1:
         args: [{alpha: 1, l_build: 125, max_outdegree: 32}]
         query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
-      vamana_125_32_1-1:
-        args: [{alpha: 1.1, l_build: 125, max_outdegree: 32}]
-        query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
-      vamana_125_32_1-2:
-        args: [{alpha: 1.2, l_build: 125, max_outdegree: 32}]
-        query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
-      vamana_125_64_1:
-        args: [{alpha: 1, l_build: 125, max_outdegree: 64}]
-        query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
-      vamana_125_64_1-1:
-        args: [{alpha: 1.1, l_build: 125, max_outdegree: 64}]
-        query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
-      vamana_125_64_1-2:
-        args: [{alpha: 1.2, l_build: 125, max_outdegree: 64}]
-        query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
+      # vamana_125_32_1-1:
+      #   args: [{alpha: 1.1, l_build: 125, max_outdegree: 32}]
+      #   query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
+      # vamana_125_32_1-2:
+      #   args: [{alpha: 1.2, l_build: 125, max_outdegree: 32}]
+      #   query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
+      # vamana_125_64_1:
+      #   args: [{alpha: 1, l_build: 125, max_outdegree: 64}]
+      #   query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
+      # vamana_125_64_1-1:
+      #   args: [{alpha: 1.1, l_build: 125, max_outdegree: 64}]
+      #   query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
+      # vamana_125_64_1-2:
+      #   args: [{alpha: 1.2, l_build: 125, max_outdegree: 64}]
+      #   query_args: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]]
   - base_args: ['@metric']
     constructor: VamanaPQ
     disabled: false
