@@ -328,18 +328,30 @@ def run_docker(
     client = docker.from_env()
     if mem_limit is None:
         mem_limit = psutil.virtual_memory().available
-    # mem_limit = 1024 * 1024 * 1024
+    mem_limit = 3 * 1024 * 1024 * 1024
+
+    # 定义挂载点
+    volumes = {
+        os.path.abspath("/var/run/docker.sock"): {"bind": "/var/run/docker.sock", "mode": "rw"},
+        os.path.abspath("ann_benchmarks"): {"bind": "/home/app/ann_benchmarks", "mode": "ro"},
+        os.path.abspath("data"): {"bind": "/home/app/data", "mode": "ro"},
+        os.path.abspath("results"): {"bind": "/home/app/results", "mode": "rw"},
+        os.path.abspath(SIM_SSD_DIR_HOST): {"bind": SIM_SSD_DIR_CONTAINER, "mode": "rw"},
+    }
+
+    # 为hnswlib添加本地开发挂载
+    if definition.algorithm == "hnswlib" or definition.docker_tag == "ann-benchmarks-hnswlib":
+        local_hnswlib_path = os.path.abspath("../hnswlib")
+        if os.path.exists(local_hnswlib_path):
+            volumes[local_hnswlib_path] = {"bind": "/hnswlib", "mode": "rw"}
+        else:
+            raise Exception(f"Local hnswlib repository not found at {local_hnswlib_path}. "
+                          f"For development, please ensure your local hnswlib repository exists at this path.")
 
     container = client.containers.run(
         definition.docker_tag,
         cmd,
-        volumes={
-            os.path.abspath("/var/run/docker.sock"): {"bind": "/var/run/docker.sock", "mode": "rw"},
-            os.path.abspath("ann_benchmarks"): {"bind": "/home/app/ann_benchmarks", "mode": "ro"},
-            os.path.abspath("data"): {"bind": "/home/app/data", "mode": "ro"},
-            os.path.abspath("results"): {"bind": "/home/app/results", "mode": "rw"},
-            os.path.abspath(SIM_SSD_DIR_HOST): {"bind": SIM_SSD_DIR_CONTAINER, "mode": "rw"},
-        },
+        volumes=volumes,
         network_mode="host",
         cpuset_cpus=cpu_limit,
         mem_limit=mem_limit,
