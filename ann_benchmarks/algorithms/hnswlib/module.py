@@ -26,7 +26,7 @@ class HnswLib(BaseANN):
         index_path = os.path.join(SIM_SSD_DIR_CONTAINER, "hnswlib", "index")
         os.makedirs(os.path.join(SIM_SSD_DIR_CONTAINER, "hnswlib"), exist_ok=True)
         self.p.save_index(index_path)
-        self.p.load_index(index_path, cache_size=64 * 1024 * 1024)
+        self.p.load_index(index_path, cache_size=32 * 1024 * 1024)
 
     def set_query_arguments(self, ef):
         self.p.reset_metrics_counter()

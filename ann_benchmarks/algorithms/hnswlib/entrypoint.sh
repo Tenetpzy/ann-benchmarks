@@ -24,4 +24,5 @@ echo "hnswlib installed successfully, starting benchmark..." >&2
 echo "=== HNSWLIB ENTRYPOINT END ===" >&2
 
 # 执行原来的命令（通过base镜像的ENTRYPOINT）
-exec python -u /home/app/run_algorithm.py "$@"
+cd /home/app
+exec python -u run_algorithm.py "$@"
