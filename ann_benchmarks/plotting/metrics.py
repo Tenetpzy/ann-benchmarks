@@ -205,18 +205,18 @@ all_metrics = {
     },
     "cache_hit_rate": {
         "description": "Cache Hit Rate (%)",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("cache_hit_rate") if run_attrs.get("algo") == "hnswlib" else None,
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("cache_hit_rate"),
         "worst": float("-inf"),
         "lim": [0.0, 100.0],
     },
     "io_operations": {
         "description": "Average I/O Operations",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("io_operations") if run_attrs.get("algo") == "hnswlib" else None,
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("io_operations"),
         "worst": float("inf"),
     },
     "memory_transfer_kb": {
         "description": "Memory Transfer (KB)",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb") if run_attrs.get("algo") == "hnswlib" else None,
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb"),
         "worst": float("inf"),
     },
 }

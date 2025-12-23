@@ -16,7 +16,8 @@ class HnswLib(BaseANN):
         # Only l2 is supported currently
         self.p = hnswlib.Index(space=self.metric, dim=len(X[0]))
         self.p.init_index(
-            max_elements=len(X), ef_construction=self.method_param["efConstruction"], M=self.method_param["M"]
+            max_elements=len(X), ef_construction=self.method_param["efConstruction"], M=self.method_param["M"],
+            page_size=32768
         )
         data_labels = np.arange(len(X))
         self.p.add_items(np.asarray(X), data_labels)

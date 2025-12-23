@@ -7,6 +7,7 @@ import multiprocessing.pool
 import os
 import random
 import shutil
+import subprocess
 import sys
 from typing import List
 
@@ -66,6 +67,12 @@ def run_worker(cpu: int, mem_limit: int, args: argparse.Namespace, queue: multip
         None
     """
     while not queue.empty():
+
+        # Run nvmevirt scripts before each algorithm execution
+        parent_dir = os.path.dirname(os.getcwd())
+        subprocess.run([os.path.join(parent_dir, "teardown_nvmevirt.sh")], check=True)
+        subprocess.run([os.path.join(parent_dir, "setup_nvmevirt.sh")], check=True)
+
         definition = queue.get()
         if args.local:
             run(definition, args.dataset, args.count, args.runs, args.batch)
