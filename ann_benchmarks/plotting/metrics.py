@@ -205,7 +205,7 @@ all_metrics = {
     },
     "cache_hit_rate": {
         "description": "Cache Hit Rate (%)",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("cache_hit_rate"),
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("cache_hit_rate") * 100,
         "worst": float("-inf"),
         "lim": [0.0, 100.0],
     },
