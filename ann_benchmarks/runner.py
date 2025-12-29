@@ -355,6 +355,7 @@ def run_docker(
         network_mode="host",
         cpuset_cpus=cpu_limit,
         mem_limit=mem_limit,
+        security_opt=["seccomp=unconfined"],
         detach=True,
     )
     logger = logging.getLogger(f"annb.{container.short_id}")

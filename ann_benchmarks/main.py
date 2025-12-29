@@ -77,7 +77,7 @@ def run_worker(cpu: int, mem_limit: int, args: argparse.Namespace, queue: multip
         if args.local:
             run(definition, args.dataset, args.count, args.runs, args.batch)
         else:
-            cpu_limit = str(cpu) if not args.batch else f"0-{multiprocessing.cpu_count() - 1}"
+            cpu_limit = str(cpu) if not args.batch else f"0-5"
             
             run_docker(definition, args.dataset, args.count, args.runs, args.timeout, args.batch, cpu_limit, mem_limit)
 

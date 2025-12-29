@@ -38,6 +38,15 @@ class HnswLib(BaseANN):
         # print(np.expand_dims(v,axis=0).shape)
         # print(self.p.knn_query(np.expand_dims(v,axis=0), k = n)[0])
         return self.p.knn_query(np.expand_dims(v, axis=0), k=n)[0][0]
+    
+    def batch_query(self, X, n: int) -> None:
+        # X shape: (num_queries, dim)
+        # knn_query returns: (labels_array, distances_array)
+        # labels_array shape: (num_queries, n), dtype: int64
+        self.res, _ = self.p.knn_query(X, k=n, num_threads=6)
+
+    def get_batch_results(self):
+        return self.res
 
     def get_additional(self):
         """从C++ binding获取性能指标"""
