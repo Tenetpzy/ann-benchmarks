@@ -13,8 +13,8 @@ def simulate_performance(
     cache_hit_rate: float,      # 缓存命中率 (0.0 - 1.0)
     C: float = 1,  # 算法IO复杂度系数
     K: float = 1,  # 数据集稀疏度，值越大表示搜索的IO次数越多
-    T_cpu_base_us: float = 500.0,
-    T_cpu_per_node_us: float = 20.0,
+    T_cpu_base_us: float = 500.0, # 在内存图中的导航时间
+    T_cpu_per_node_us: float = 20.0, # 每处理一个节点的CPU时间开销
 
     # --- 硬件物理参数 ---
     T_ssd_latency_base_us: float = 60,
@@ -46,7 +46,9 @@ def simulate_performance(
     sim_cpu_nodes_processed = sim_logical_ios
 
     # 硬件波动
-    mu = np.log(T_ssd_latency_base_us)
+    # 确保最小值 > 0，避免 log(0) = -inf
+    min_ssd_latency = max(T_ssd_latency_base_us, 1e-6)
+    mu = np.log(min_ssd_latency)
     sim_ssd_latencies_us = np.random.lognormal(mean=mu, sigma=jitter_latency_sigma, size=sim_rounds)
     
     sim_ssd_iops_cap = np.random.normal(loc=ssd_iops_base, scale=ssd_iops_base * jitter_system_noise, size=sim_rounds)
@@ -57,10 +59,14 @@ def simulate_performance(
     sim_cpu_cores_cap = np.maximum(sim_cpu_cores_cap, 1.0)
 
     # CPU开销随机波动 (对数正态分布，保持正值)
-    mu_cpu_base = np.log(T_cpu_base_us)
+    # 确保最小值 > 0，避免 log(0) = -inf
+    min_cpu_base = max(T_cpu_base_us, 1e-6)
+    min_cpu_node = max(T_cpu_per_node_us, 1e-6)
+
+    mu_cpu_base = np.log(min_cpu_base)
     sim_cpu_base_us = np.random.lognormal(mean=mu_cpu_base, sigma=jitter_cpu_overhead, size=sim_rounds)
 
-    mu_cpu_node = np.log(T_cpu_per_node_us)
+    mu_cpu_node = np.log(min_cpu_node)
     sim_cpu_per_node_us = np.random.lognormal(mean=mu_cpu_node, sigma=jitter_cpu_per_node, size=sim_rounds)
 
     # 缓存命中率随机波动 (有界高斯分布，限制在[0,1])
@@ -124,12 +130,3 @@ def simulate_performance(
         "qps_stddev": int(np.std(final_qps)),
         "bottleneck": analysis
     }
-
-recall_target = [0.9, 0.92, 0.95, 0.97, 0.99, 0.992, 0.995, 0.997, 0.999]
-
-# 2. Beam Width (搜索束宽)
-beam_width = [20, 20, 20, 20, 20, 20, 20, 20, 20]
-
-# 3. Cache Hit Rate
-# 解释：召回率低时只需在图的上层游走（热点高）；召回率高时需深挖底层（冷数据多）
-cache_hit_rate = [0.35, 0.33, 0.30, 0.25, 0.20, 0.18, 0.15, 0.12, 0.08]
