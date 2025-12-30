@@ -12,13 +12,18 @@ def simulate_performance(
     beam_width: int,            # 搜索束宽，表示一次向SSD并行提交的IO个数
     cache_hit_rate: float,      # 缓存命中率 (0.0 - 1.0)
     C: float = 1,  # 算法IO复杂度系数
+    B: float = 1,  # 算法IO复杂度系数( n_op = (C / (1 - recall))^B )
     K: float = 1,  # 数据集稀疏度，值越大表示搜索的IO次数越多
     T_cpu_base_us: float = 500.0, # 在内存图中的导航时间
     T_cpu_per_node_us: float = 20.0, # 每处理一个节点的CPU时间开销
 
+    # SSD算力限制
+    ssd_cpu_cores: int = 0,
+    csd_schedular_on: bool = True,
+
     # --- 硬件物理参数 ---
-    T_ssd_latency_base_us: float = 60,
-    ssd_iops_base: float = 370000,
+    T_ssd_latency_base_us: float = 200,
+    ssd_iops_base: float = 100000,
 
     # --- 随机性参数 ---
     sim_rounds: int = 1000,
@@ -36,7 +41,7 @@ def simulate_performance(
 
     # 向量化生成随机 IO
     error_rate = 1.0 - effective_recall
-    base_logical_ios = C * K * (1.0 / error_rate)
+    base_logical_ios = (C * K * (1.0 / error_rate)) ** B
 
     # 带有波动的逻辑IO
     sim_logical_ios = np.random.normal(loc=base_logical_ios, scale=base_logical_ios * jitter_io_complexity, size=sim_rounds)
@@ -57,6 +62,8 @@ def simulate_performance(
     # 保护下限
     sim_ssd_iops_cap = np.maximum(sim_ssd_iops_cap, 1000.0)
     sim_cpu_cores_cap = np.maximum(sim_cpu_cores_cap, 1.0)
+    sim_ssd_cpu_cores_cap = np.random.normal(loc=ssd_cpu_cores, scale=ssd_cpu_cores * jitter_system_noise, size=sim_rounds)
+    sim_ssd_cpu_cores_cap = np.maximum(sim_ssd_cpu_cores_cap, 1.0)
 
     # CPU开销随机波动 (对数正态分布，保持正值)
     # 确保最小值 > 0，避免 log(0) = -inf
@@ -85,35 +92,66 @@ def simulate_performance(
         (sim_cpu_nodes_processed * sim_cpu_per_node_us)
     )
     sim_latencies_sec = sim_latencies_us / 1_000_000.0
-    
-    # QPS (Three Bound Analysis)
+
+    # QPS (Bottleneck Analysis)
     # Disk Bound
     with np.errstate(divide='ignore'):
-        qps_disk = np.where(sim_physical_ios > 0.1, 
-                            sim_ssd_iops_cap / sim_physical_ios, 
+        qps_disk = np.where(sim_physical_ios > 0.1,
+                            sim_ssd_iops_cap / sim_physical_ios,
                             99999999.0)
-    
+
     # CPU Bound (使用平均CPU开销)
     avg_cpu_base = np.mean(sim_cpu_base_us)
     avg_cpu_per_node = np.mean(sim_cpu_per_node_us)
-    cpu_active_time_us = avg_cpu_base + (sim_cpu_nodes_processed * avg_cpu_per_node)
-    qps_cpu = (sim_cpu_cores_cap * 1_000_000.0) / cpu_active_time_us
-    
+
+    if csd_schedular_on:
+        # 调度器开启：CPU计算均匀分布，总资源 = CPU核心 + SSD CPU核心
+        cpu_base_time_us = avg_cpu_base
+        cpu_node_time_us = sim_cpu_nodes_processed * avg_cpu_per_node
+        total_cpu_cores = sim_cpu_cores_cap + sim_ssd_cpu_cores_cap
+        cpu_active_time_us = cpu_base_time_us + cpu_node_time_us
+        qps_cpu = (total_cpu_cores * 1_000_000.0) / cpu_active_time_us
+        qps_ssd_computing = None  # 不需要单独计算
+    else:
+        # 调度器关闭：base 在主CPU，node processing 在SSD CPU
+        cpu_base_time_us = avg_cpu_base
+        cpu_node_time_us = sim_cpu_nodes_processed * avg_cpu_per_node
+
+        # 主CPU QPS
+        qps_cpu = (sim_cpu_cores_cap * 1_000_000.0) / (cpu_base_time_us + cpu_node_time_us)
+        # SSD CPU QPS (只算 node processing 部分)
+        qps_ssd_computing = (sim_ssd_cpu_cores_cap * 1_000_000.0) / cpu_node_time_us
+
     # Memory/Concurrency Bound
     max_concurrency = max(1, int(available_cache_pages // real_pages_per_req))
     qps_buffer = max_concurrency / sim_latencies_sec
-    
-    final_qps = np.minimum(qps_disk, np.minimum(qps_cpu, qps_buffer))
-    
-    bottleneck_matrix = np.vstack([qps_disk, qps_cpu, qps_buffer])
-    bottleneck_indices = np.argmin(bottleneck_matrix, axis=0)
-    b_counts = np.bincount(bottleneck_indices, minlength=3)
-    total_samples = float(sim_rounds)
-    analysis = {
-        "Disk_Bound_Prob": round(b_counts[0] / total_samples, 3),
-        "CPU_Bound_Prob": round(b_counts[1] / total_samples, 3),
-        "Buffer_Bound_Prob": round(b_counts[2] / total_samples, 3)
-    }
+
+    # 构建 bottleneck matrix
+    if qps_ssd_computing is not None:
+        # 4个瓶颈：Disk, CPU, SSD_Computing, Buffer
+        bottleneck_matrix = np.vstack([qps_disk, qps_cpu, qps_ssd_computing, qps_buffer])
+        bottleneck_indices = np.argmin(bottleneck_matrix, axis=0)
+        b_counts = np.bincount(bottleneck_indices, minlength=4)
+        total_samples = float(sim_rounds)
+        analysis = {
+            "Disk_Bound_Prob": round(b_counts[0] / total_samples, 3),
+            "CPU_Bound_Prob": round(b_counts[1] / total_samples, 3),
+            "SSD_Computing_Prob": round(b_counts[2] / total_samples, 3),
+            "Buffer_Bound_Prob": round(b_counts[3] / total_samples, 3)
+        }
+        final_qps = np.minimum.reduce([qps_disk, qps_cpu, qps_ssd_computing, qps_buffer])
+    else:
+        # 3个瓶颈：Disk, CPU, Buffer
+        bottleneck_matrix = np.vstack([qps_disk, qps_cpu, qps_buffer])
+        bottleneck_indices = np.argmin(bottleneck_matrix, axis=0)
+        b_counts = np.bincount(bottleneck_indices, minlength=3)
+        total_samples = float(sim_rounds)
+        analysis = {
+            "Disk_Bound_Prob": round(b_counts[0] / total_samples, 3),
+            "CPU_Bound_Prob": round(b_counts[1] / total_samples, 3),
+            "Buffer_Bound_Prob": round(b_counts[2] / total_samples, 3)
+        }
+        final_qps = np.minimum(qps_disk, np.minimum(qps_cpu, qps_buffer))
 
     return {
         "input_summary_recall_target": recall_target,
