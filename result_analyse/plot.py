@@ -506,6 +506,134 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload():
     print("  - opt_storage_table.png")
     print("  - offload_table.png")
 
+def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload():
+    # 获取三个算法的9组模拟结果
+    baseline_results = []
+    opt_storage_results = []
+    sched_offload_results = []
+
+    for recall in recall_target:
+        idx = recall_target.index(recall)
+        baseline_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=hnsw_baseline_cpu_cores,
+            beam_width=hnsw_baseline_beam_width,
+            cache_hit_rate=hnsw_baseline_cache_hit_rate[idx],
+            C=hnsw_baseline_C,
+            B=hnsw_baseline_B,
+            T_cpu_base_us=hnsw_baseline_cpu_base_us,
+            T_cpu_per_node_us=hnsw_baseline_cpu_per_node_us
+        ))
+        opt_storage_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=csdann_opt_storage_cpu_cores,
+            beam_width=csdann_opt_storage_beam_width,
+            cache_hit_rate=csdann_opt_storage_cache_hit_rate[idx],
+            C=csdann_opt_storage_C,
+            B=csdann_opt_storage_B,
+            T_cpu_base_us=csdann_opt_storage_cpu_base_us,
+            T_cpu_per_node_us=csdann_opt_storage_cpu_per_node_us
+        ))
+        sched_offload_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=csdann_sched_offload_cpu_cores,
+            beam_width=csdann_sched_offload_beam_width,
+            cache_hit_rate=csdann_sched_offload_cache_hit_rate[idx],
+            C=csdann_sched_offload_C,
+            B=csdann_sched_offload_B,
+            T_cpu_base_us=csdann_sched_offload_cpu_base_us,
+            T_cpu_per_node_us=csdann_sched_offload_cpu_per_node_us,
+            ssd_cpu_cores=csdann_sched_offload_ssd_cpu_cores,
+            csd_schedular_on=csdann_sched_offload_csd_schedular_on
+        ))
+
+    # 提取数据
+    latency_baseline = [r['latency_ms_mean'] for r in baseline_results]
+    latency_opt_storage = [r['latency_ms_mean'] for r in opt_storage_results]
+    latency_sched_offload = [r['latency_ms_mean'] for r in sched_offload_results]
+    qps_baseline = [r['qps_mean'] for r in baseline_results]
+    qps_opt_storage = [r['qps_mean'] for r in opt_storage_results]
+    qps_sched_offload = [r['qps_mean'] for r in sched_offload_results]
+
+    # 设置学术论文风格
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.titlesize': 14,
+        'axes.labelsize': 13,
+        'legend.fontsize': 11,
+        'xtick.labelsize': 11,
+        'ytick.labelsize': 11,
+        'figure.figsize': (6, 4.5),
+        'font.family': 'serif',
+    })
+
+    # 计算 error_rate 作为横坐标（更均匀的分布）
+    error_rates = [1 - r for r in recall_target]
+
+    # 图1: latency折线图（使用log scale）
+    fig1, ax1 = plt.subplots(figsize=(6, 4.5))
+    ax1.plot(error_rates, latency_baseline, 'o-', label='hnsw_baseline',
+             color='#2E86AB', linewidth=2, markersize=6)
+    ax1.plot(error_rates, latency_opt_storage, 's-', label='csdann_opt_storage',
+             color='#E94F37', linewidth=2, markersize=6)
+    ax1.plot(error_rates, latency_sched_offload, '^-', label='csdann_sched_offload',
+             color='#44AF69', linewidth=2, markersize=6)
+    ax1.set_xscale('log')
+    ax1.set_xlabel('Error Rate (1 - Recall)')
+    ax1.set_ylabel('Latency (ms)')
+    ax1.invert_xaxis()  # 反转使高recall在右
+    ax1.legend(loc='upper left')
+    ax1.grid(True, linestyle='--', alpha=0.7, which='both')
+    plt.tight_layout()
+    fig1.savefig('baseline_vs_opt_store_vs_sched_offload/latency.png', dpi=300)
+    plt.close(fig1)
+
+    # 图2: qps折线图（使用log scale）
+    fig2, ax2 = plt.subplots(figsize=(6, 4.5))
+    ax2.plot(error_rates, qps_baseline, 'o-', label='hnsw_baseline',
+             color='#2E86AB', linewidth=2, markersize=6)
+    ax2.plot(error_rates, qps_opt_storage, 's-', label='csdann_opt_storage',
+             color='#E94F37', linewidth=2, markersize=6)
+    ax2.plot(error_rates, qps_sched_offload, '^-', label='csdann_sched_offload',
+             color='#44AF69', linewidth=2, markersize=6)
+    ax2.set_xscale('log')
+    ax2.set_xlabel('Error Rate (1 - Recall)')
+    ax2.set_ylabel('QPS')
+    ax2.invert_xaxis()  # 反转使高recall在右
+    ax2.legend(loc='upper right')
+    ax2.grid(True, linestyle='--', alpha=0.7, which='both')
+    plt.tight_layout()
+    fig2.savefig('baseline_vs_opt_store_vs_sched_offload/qps.png', dpi=300)
+    plt.close(fig2)
+
+    print("图表已保存到 baseline_vs_opt_store_vs_sched_offload/ 目录:")
+    print("  - latency.png")
+    print("  - qps.png")
+
+    # 生成结果表格
+    plot_results_table(
+        title='HNSW Baseline Results',
+        results=baseline_results,
+        save_path='baseline_vs_opt_store_vs_sched_offload/baseline_table.png'
+    )
+    plot_results_table(
+        title='CSDANN Opt Storage Results',
+        results=opt_storage_results,
+        save_path='baseline_vs_opt_store_vs_sched_offload/opt_storage_table.png'
+    )
+    plot_results_table(
+        title='CSDANN Sched Offload Results',
+        results=sched_offload_results,
+        save_path='baseline_vs_opt_store_vs_sched_offload/sched_offload_table.png'
+    )
+    print("  - baseline_table.png")
+    print("  - opt_storage_table.png")
+    print("  - sched_offload_table.png")
+
 # plot_result_of_baseline_and_reorder()
 # plot_result_of_hnsw_baseline_and_csdann_opt_storage()
-plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload()
+# plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload()
+plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload()
