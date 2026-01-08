@@ -415,10 +415,10 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload():
             cpu_cores=csdann_offload_cpu_cores,
             beam_width=csdann_offload_beam_width,
             cache_hit_rate=csdann_offload_cache_hit_rate[idx],
-            C=csdann_offload_storage_C,
-            B=csdann_offload_storage_B,
-            T_cpu_base_us=csdann_offload_storage_cpu_base_us,
-            T_cpu_per_node_us=csdann_offload_storage_cpu_per_node_us,
+            C=csdann_offload_C,
+            B=csdann_offload_B,
+            T_cpu_base_us=csdann_offload_cpu_base_us,
+            T_cpu_per_node_us=csdann_offload_cpu_per_node_us,
             ssd_cpu_cores=csdann_offload_ssd_cpu_cores,
             csd_schedular_on=csdann_offload_csd_schedular_on
         ))
@@ -633,7 +633,133 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload():
     print("  - opt_storage_table.png")
     print("  - sched_offload_table.png")
 
+def plot_memory_bandwidth():
+    # 获取四个算法的9组模拟结果
+    baseline_results = []
+    opt_storage_results = []
+    offload_results = []
+    sched_offload_results = []
+
+    for recall in recall_target:
+        idx = recall_target.index(recall)
+        baseline_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=hnsw_baseline_cpu_cores,
+            beam_width=hnsw_baseline_beam_width,
+            cache_hit_rate=hnsw_baseline_cache_hit_rate[idx],
+            C=hnsw_baseline_C,
+            B=hnsw_baseline_B,
+            T_cpu_base_us=hnsw_baseline_cpu_base_us,
+            T_cpu_per_node_us=hnsw_baseline_cpu_per_node_us
+        ))
+        opt_storage_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=csdann_opt_storage_cpu_cores,
+            beam_width=csdann_opt_storage_beam_width,
+            cache_hit_rate=csdann_opt_storage_cache_hit_rate[idx],
+            C=csdann_opt_storage_C,
+            B=csdann_opt_storage_B,
+            T_cpu_base_us=csdann_opt_storage_cpu_base_us,
+            T_cpu_per_node_us=csdann_opt_storage_cpu_per_node_us
+        ))
+        offload_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=csdann_offload_cpu_cores,
+            beam_width=csdann_offload_beam_width,
+            cache_hit_rate=csdann_offload_cache_hit_rate[idx],
+            C=csdann_offload_C,
+            B=csdann_offload_B,
+            T_cpu_base_us=csdann_offload_cpu_base_us,
+            T_cpu_per_node_us=csdann_offload_cpu_per_node_us,
+            ssd_cpu_cores=csdann_offload_ssd_cpu_cores,
+            csd_schedular_on=csdann_offload_csd_schedular_on
+        ))
+        sched_offload_results.append(simulate_performance(
+            recall_target=recall,
+            available_cache_pages=available_cache_pages,
+            cpu_cores=csdann_sched_offload_cpu_cores,
+            beam_width=csdann_sched_offload_beam_width,
+            cache_hit_rate=csdann_sched_offload_cache_hit_rate[idx],
+            C=csdann_sched_offload_C,
+            B=csdann_sched_offload_B,
+            T_cpu_base_us=csdann_sched_offload_cpu_base_us,
+            T_cpu_per_node_us=csdann_sched_offload_cpu_per_node_us,
+            ssd_cpu_cores=csdann_sched_offload_ssd_cpu_cores,
+            csd_schedular_on=csdann_sched_offload_csd_schedular_on
+        ))
+
+    # 提取 memory_bandwidth 数据 (单位: B/s)
+    memory_bandwidth_baseline = [r['memory_bandwidth'] for r in baseline_results]
+    memory_bandwidth_opt_storage = [r['memory_bandwidth'] for r in opt_storage_results]
+    memory_bandwidth_offload = [r['memory_bandwidth'] for r in offload_results]
+    memory_bandwidth_sched_offload = [r['memory_bandwidth'] for r in sched_offload_results]
+
+    # 确定合适的单位缩放
+    all_values = (memory_bandwidth_baseline + memory_bandwidth_opt_storage +
+                  memory_bandwidth_offload + memory_bandwidth_sched_offload)
+    max_value = max(all_values)
+    if max_value >= 1e9:
+        scale_factor = 1e6  # 转换为 MB/s
+        unit_label = 'MB/s'
+    elif max_value >= 1e6:
+        scale_factor = 1e3  # 转换为 KB/s
+        unit_label = 'KB/s'
+    else:
+        scale_factor = 1
+        unit_label = 'B/s'
+
+    # 缩放数据
+    mb_baseline = [v / scale_factor for v in memory_bandwidth_baseline]
+    mb_opt_storage = [v / scale_factor for v in memory_bandwidth_opt_storage]
+    mb_offload = [v / scale_factor for v in memory_bandwidth_offload]
+    mb_sched_offload = [v / scale_factor for v in memory_bandwidth_sched_offload]
+
+    # 设置学术论文风格
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.titlesize': 14,
+        'axes.labelsize': 13,
+        'legend.fontsize': 10,
+        'xtick.labelsize': 11,
+        'ytick.labelsize': 11,
+        'figure.figsize': (8, 5),
+        'font.family': 'serif',
+    })
+
+    x = np.arange(len(recall_target))
+    width = 0.2
+    x_positions = x - 1.5 * width, x - 0.5 * width, x + 0.5 * width, x + 1.5 * width
+
+    # 绘制柱状图
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(x_positions[0], mb_baseline, width,
+           label='hnsw_baseline', color='#2E86AB', edgecolor='black', linewidth=0.5)
+    ax.bar(x_positions[1], mb_opt_storage, width,
+           label='csdann_opt_storage', color='#E94F37', edgecolor='black', linewidth=0.5)
+    ax.bar(x_positions[2], mb_offload, width,
+           label='csdann_offload', color='#44AF69', edgecolor='black', linewidth=0.5)
+    ax.bar(x_positions[3], mb_sched_offload, width,
+           label='csdann_sched_offload', color='#F18F01', edgecolor='black', linewidth=0.5)
+
+    ax.set_xlabel('Recall')
+    ax.set_ylabel(f'Memory Bandwidth Usage ({unit_label})')
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(r) for r in recall_target], rotation=45, ha='right')
+    ax.legend(loc='upper left', ncol=2)
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+    plt.tight_layout()
+    fig.savefig('memory_bandwidth/memory_bandwidth.png', dpi=300)
+    plt.close(fig)
+
+    print("memory_bandwidth 柱状图已保存到 memory_bandwidth/ 目录")
+    print(f"单位: {unit_label}, 缩放因子: {scale_factor}")
+
 # plot_result_of_baseline_and_reorder()
 # plot_result_of_hnsw_baseline_and_csdann_opt_storage()
 # plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload()
-plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload()
+# plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload()
+plot_memory_bandwidth()

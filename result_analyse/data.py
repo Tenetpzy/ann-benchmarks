@@ -26,10 +26,10 @@ csdann_sched_offload_csd_schedular_on = True
 csdann_offload_beam_width = 8
 csdann_offload_cpu_cores = 7
 csdann_offload_cache_hit_rate = [0.60, 0.58, 0.55, 0.53, 0.50, 0.45, 0.40, 0.37, 0.32]
-csdann_offload_storage_C = 2
-csdann_offload_storage_B = 7.0 / 8.0
-csdann_offload_storage_cpu_base_us = 800
-csdann_offload_storage_cpu_per_node_us = 17
+csdann_offload_C = 2
+csdann_offload_B = 7.0 / 8.0
+csdann_offload_cpu_base_us = 800
+csdann_offload_cpu_per_node_us = 17
 csdann_offload_ssd_cpu_cores = 2
 csdann_offload_csd_schedular_on = False
 

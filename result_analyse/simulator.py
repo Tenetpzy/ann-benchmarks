@@ -16,16 +16,17 @@ def simulate_performance(
     K: float = 1,  # 数据集稀疏度，值越大表示搜索的IO次数越多
     T_cpu_base_us: float = 500.0, # 在内存图中的导航时间
     T_cpu_per_node_us: float = 20.0, # 每处理一个节点的CPU时间开销
+    page_size_per_io: int = 16 * 1024,  # 每次IO读取的页面大小(字节) 
 
     # SSD算力限制
     ssd_cpu_cores: int = 0,
     csd_schedular_on: bool = True,
 
-    # --- 硬件物理参数 ---
+    # 硬件物理参数
     T_ssd_latency_base_us: float = 200,
     ssd_iops_base: float = 100000,
 
-    # --- 随机性参数 ---
+    # 随机性参数
     sim_rounds: int = 1000,
     jitter_io_complexity: float = 0.2,
     jitter_latency_sigma: float = 0.4,
@@ -93,6 +94,8 @@ def simulate_performance(
     )
     sim_latencies_sec = sim_latencies_us / 1_000_000.0
 
+    memory_transferred_bytes = int(np.mean(sim_physical_ios * page_size_per_io))
+
     # QPS (Bottleneck Analysis)
     # Disk Bound
     with np.errstate(divide='ignore'):
@@ -111,7 +114,8 @@ def simulate_performance(
         total_cpu_cores = sim_cpu_cores_cap + sim_ssd_cpu_cores_cap
         cpu_active_time_us = cpu_base_time_us + cpu_node_time_us
         qps_cpu = (total_cpu_cores * 1_000_000.0) / cpu_active_time_us
-        qps_ssd_computing = None  # 不需要单独计算
+        qps_ssd_computing = None
+        memory_transferred_rate_per_req = np.mean((0.1 * memory_transferred_bytes + memory_transferred_bytes * cpu_cores / float(cpu_cores + ssd_cpu_cores)) / sim_latencies_sec)
     else:
         # 调度器关闭：base 在主CPU，node processing 在SSD CPU
         cpu_base_time_us = avg_cpu_base
@@ -121,6 +125,14 @@ def simulate_performance(
         qps_cpu = (sim_cpu_cores_cap * 1_000_000.0) / (cpu_base_time_us + cpu_node_time_us)
         # SSD CPU QPS (只算 node processing 部分)
         qps_ssd_computing = (sim_ssd_cpu_cores_cap * 1_000_000.0) / cpu_node_time_us
+
+        memory_transferred_rate_per_req = np.mean(0.1 * memory_transferred_bytes / sim_latencies_sec)
+
+    # 内存带宽随机波动（对数正态分布，保持正值）
+    jitter_memory_bandwidth = 0.05
+    min_mem_rate = max(memory_transferred_rate_per_req, 1e-6)
+    mu_mem = np.log(min_mem_rate)
+    memory_transferred_rate_per_req = np.random.lognormal(mean=mu_mem, sigma=jitter_memory_bandwidth, size=1)[0]
 
     # Memory/Concurrency Bound
     max_concurrency = max(1, int(available_cache_pages // real_pages_per_req))
@@ -166,5 +178,6 @@ def simulate_performance(
         "qps_p50": int(np.percentile(final_qps, 50)),
         "qps_p99": int(np.percentile(final_qps, 99)),
         "qps_stddev": int(np.std(final_qps)),
+        "memory_bandwidth": float(memory_transferred_rate_per_req),  # B/s
         "bottleneck": analysis
     }
