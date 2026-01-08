@@ -1,5 +1,5 @@
 from data import *
-from simulator import simulate_performance
+from simulator import simulate_performance, io_num
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Bbox
 import numpy as np
@@ -758,8 +758,15 @@ def plot_memory_bandwidth():
     print("memory_bandwidth 柱状图已保存到 memory_bandwidth/ 目录")
     print(f"单位: {unit_label}, 缩放因子: {scale_factor}")
 
-# plot_result_of_baseline_and_reorder()
-# plot_result_of_hnsw_baseline_and_csdann_opt_storage()
-# plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload()
-# plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload()
+plot_result_of_baseline_and_reorder()
+plot_result_of_hnsw_baseline_and_csdann_opt_storage()
+plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload()
+plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload()
 plot_memory_bandwidth()
+
+# print(io_num(0.9, hnsw_baseline_C, 0.25, hnsw_baseline_B))
+# print(io_num(0.99, hnsw_baseline_C, 0.25, hnsw_baseline_B))
+# print(io_num(0.995, hnsw_baseline_C, 0.25, hnsw_baseline_B))
+# print(io_num(0.9, csdann_reorder_C, 0.25, csdann_reorder_B))
+# print(io_num(0.99, csdann_reorder_C, 0.25, csdann_reorder_B))
+# print(io_num(0.995, csdann_reorder_C, 0.25, csdann_reorder_B))

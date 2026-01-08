@@ -1,5 +1,9 @@
 import numpy as np
 
+def io_num(effective_recall, C, K, B):
+    error_rate = 1.0 - effective_recall
+    return C + K * np.power(error_rate, -B)
+
 def simulate_performance(
     # 召回率
     recall_target: float,
@@ -11,8 +15,8 @@ def simulate_performance(
     # 算法模型参数
     beam_width: int,            # 搜索束宽，表示一次向SSD并行提交的IO个数
     cache_hit_rate: float,      # 缓存命中率 (0.0 - 1.0)
-    C: float = 1,  # 算法IO复杂度系数
-    B: float = 1,  # 算法IO复杂度系数( n_op = (C / (1 - recall))^B )
+    C: float = 1,  # 算法IO复杂度系数，固有I/O
+    B: float = 1,  # 算法IO复杂度系数，维度相关
     K: float = 1,  # 数据集稀疏度，值越大表示搜索的IO次数越多
     T_cpu_base_us: float = 500.0, # 在内存图中的导航时间
     T_cpu_per_node_us: float = 20.0, # 每处理一个节点的CPU时间开销
@@ -42,7 +46,7 @@ def simulate_performance(
 
     # 向量化生成随机 IO
     error_rate = 1.0 - effective_recall
-    base_logical_ios = (C * K * (1.0 / error_rate)) ** B
+    base_logical_ios = C + K * np.power(error_rate, -B)
 
     # 带有波动的逻辑IO
     sim_logical_ios = np.random.normal(loc=base_logical_ios, scale=base_logical_ios * jitter_io_complexity, size=sim_rounds)
