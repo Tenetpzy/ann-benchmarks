@@ -328,7 +328,7 @@ def run_docker(
     client = docker.from_env()
     if mem_limit is None:
         mem_limit = psutil.virtual_memory().available
-    mem_limit = 3 * 1024 * 1024 * 1024
+    mem_limit = 4 * 1024 * 1024 * 1024
 
     # 定义挂载点
     volumes = {

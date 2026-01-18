@@ -2,7 +2,29 @@ from data import *
 from simulator import simulate_performance, io_num
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Bbox
+from matplotlib.ticker import FuncFormatter
 import numpy as np
+
+
+# Unicode 上标映射
+SUPERSCRIPT = {
+    '-': '⁻',
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+}
+
+
+def recall_formatter(val, pos):
+    """将 error_rate 值转换为 1-10^n 格式显示"""
+    # val 是 error_rate (1-recall)，recall = 1 - val
+    if val <= 0:
+        return ''
+    # 计算 10 的幂次，error_rate = 10^power
+    power = np.log10(val)
+    power_str = str(int(power))
+    # 转换为上标
+    superscript = ''.join(SUPERSCRIPT.get(c, c) for c in power_str)
+    return f'1-10{superscript}'
 
 
 def get_simplified_bottleneck(result: dict) -> str:
@@ -200,7 +222,7 @@ def plot_result_of_baseline_and_reorder():
     fig1.savefig('baseline_vs_reorder/cache_hit_rate.png', dpi=300)
     plt.close(fig1)
 
-    # 计算 error_rate 作为横坐标（更均匀的分布）
+    # 计算 error_rate 作为横坐标（用于绘图，保持分布均匀）
     error_rates = [1 - r for r in recall_target]
 
     # 图2: latency折线图（使用log scale）
@@ -210,9 +232,10 @@ def plot_result_of_baseline_and_reorder():
     ax2.plot(error_rates, latency_reorder, 's-', label='csdann_reorder',
              color='#E94F37', linewidth=2, markersize=6)
     ax2.set_xscale('log')
-    ax2.set_xlabel('Error Rate (1 - Recall)')
+    ax2.set_xlabel('Recall')
     ax2.set_ylabel('Latency (ms)')
     ax2.invert_xaxis()  # 反转使高recall在右
+    ax2.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax2.legend(loc='upper left')
     ax2.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -226,9 +249,10 @@ def plot_result_of_baseline_and_reorder():
     ax3.plot(error_rates, qps_reorder, 's-', label='csdann_reorder',
              color='#E94F37', linewidth=2, markersize=6)
     ax3.set_xscale('log')
-    ax3.set_xlabel('Error Rate (1 - Recall)')
+    ax3.set_xlabel('Recall')
     ax3.set_ylabel('QPS')
     ax3.invert_xaxis()  # 反转使高recall在右
+    ax3.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax3.legend(loc='upper right')
     ax3.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -325,7 +349,7 @@ def plot_result_of_hnsw_baseline_and_csdann_opt_storage():
     fig1.savefig('baseline_vs_opt_storage/io_operations.png', dpi=300)
     plt.close(fig1)
 
-    # 计算 error_rate 作为横坐标（更均匀的分布）
+    # 计算 error_rate 作为横坐标（用于绘图，保持分布均匀）
     error_rates = [1 - r for r in recall_target]
 
     # 图2: latency折线图（使用log scale）
@@ -335,9 +359,10 @@ def plot_result_of_hnsw_baseline_and_csdann_opt_storage():
     ax2.plot(error_rates, latency_opt_storage, 's-', label='csdann_opt_storage',
              color='#E94F37', linewidth=2, markersize=6)
     ax2.set_xscale('log')
-    ax2.set_xlabel('Error Rate (1 - Recall)')
+    ax2.set_xlabel('Recall')
     ax2.set_ylabel('Latency (ms)')
     ax2.invert_xaxis()  # 反转使高recall在右
+    ax2.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax2.legend(loc='upper left')
     ax2.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -351,9 +376,10 @@ def plot_result_of_hnsw_baseline_and_csdann_opt_storage():
     ax3.plot(error_rates, qps_opt_storage, 's-', label='csdann_opt_storage',
              color='#E94F37', linewidth=2, markersize=6)
     ax3.set_xscale('log')
-    ax3.set_xlabel('Error Rate (1 - Recall)')
+    ax3.set_xlabel('Recall')
     ax3.set_ylabel('QPS')
     ax3.invert_xaxis()  # 反转使高recall在右
+    ax3.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax3.legend(loc='upper right')
     ax3.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -443,7 +469,7 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload():
         'font.family': 'serif',
     })
 
-    # 计算 error_rate 作为横坐标（更均匀的分布）
+    # 计算 error_rate 作为横坐标（用于绘图，保持分布均匀）
     error_rates = [1 - r for r in recall_target]
 
     # 图1: latency折线图（使用log scale）
@@ -455,9 +481,10 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload():
     ax1.plot(error_rates, latency_offload, '^-', label='csdann_offload',
              color='#44AF69', linewidth=2, markersize=6)
     ax1.set_xscale('log')
-    ax1.set_xlabel('Error Rate (1 - Recall)')
+    ax1.set_xlabel('Recall')
     ax1.set_ylabel('Latency (ms)')
     ax1.invert_xaxis()  # 反转使高recall在右
+    ax1.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax1.legend(loc='upper left')
     ax1.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -473,9 +500,10 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_offload():
     ax2.plot(error_rates, qps_offload, '^-', label='csdann_offload',
              color='#44AF69', linewidth=2, markersize=6)
     ax2.set_xscale('log')
-    ax2.set_xlabel('Error Rate (1 - Recall)')
+    ax2.set_xlabel('Recall')
     ax2.set_ylabel('QPS')
     ax2.invert_xaxis()  # 反转使高recall在右
+    ax2.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax2.legend(loc='upper right')
     ax2.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -570,7 +598,7 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload():
         'font.family': 'serif',
     })
 
-    # 计算 error_rate 作为横坐标（更均匀的分布）
+    # 计算 error_rate 作为横坐标（用于绘图，保持分布均匀）
     error_rates = [1 - r for r in recall_target]
 
     # 图1: latency折线图（使用log scale）
@@ -582,9 +610,10 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload():
     ax1.plot(error_rates, latency_sched_offload, '^-', label='csdann_sched_offload',
              color='#44AF69', linewidth=2, markersize=6)
     ax1.set_xscale('log')
-    ax1.set_xlabel('Error Rate (1 - Recall)')
+    ax1.set_xlabel('Recall')
     ax1.set_ylabel('Latency (ms)')
     ax1.invert_xaxis()  # 反转使高recall在右
+    ax1.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax1.legend(loc='upper left')
     ax1.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()
@@ -600,9 +629,10 @@ def plot_result_of_baseline_and_csdann_opt_storage_and_csdann_sched_offload():
     ax2.plot(error_rates, qps_sched_offload, '^-', label='csdann_sched_offload',
              color='#44AF69', linewidth=2, markersize=6)
     ax2.set_xscale('log')
-    ax2.set_xlabel('Error Rate (1 - Recall)')
+    ax2.set_xlabel('Recall')
     ax2.set_ylabel('QPS')
     ax2.invert_xaxis()  # 反转使高recall在右
+    ax2.xaxis.set_major_formatter(FuncFormatter(recall_formatter))
     ax2.legend(loc='upper right')
     ax2.grid(True, linestyle='--', alpha=0.7, which='both')
     plt.tight_layout()

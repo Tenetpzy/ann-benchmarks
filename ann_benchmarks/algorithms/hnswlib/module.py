@@ -17,7 +17,7 @@ class HnswLib(BaseANN):
         self.p = hnswlib.Index(space=self.metric, dim=len(X[0]))
         self.p.init_index(
             max_elements=len(X), ef_construction=self.method_param["efConstruction"], M=self.method_param["M"],
-            page_size=32768
+            page_size=16384
         )
         data_labels = np.arange(len(X))
         self.p.add_items(np.asarray(X), data_labels)
@@ -27,7 +27,7 @@ class HnswLib(BaseANN):
         index_path = os.path.join(SIM_SSD_DIR_CONTAINER, "hnswlib", "index")
         os.makedirs(os.path.join(SIM_SSD_DIR_CONTAINER, "hnswlib"), exist_ok=True)
         self.p.save_index(index_path)
-        self.p.load_index(index_path, cache_size=32 * 1024 * 1024)
+        self.p.load_index(index_path, cache_size=75 * 1024 * 1024, thread_num=6)
 
     def set_query_arguments(self, ef):
         self.p.reset_metrics_counter()
@@ -55,10 +55,22 @@ class HnswLib(BaseANN):
         # - get_io_op_num(): 返回整数I/O操作数
         # - get_memory_transfer_kb(): 返回浮点数KB单位
 
+        latency_list = self.p.get_latency_ms()
+        avg_latency_ms = sum(latency_list) / len(latency_list) if latency_list else 0
+        
+        detailed = self.p.get_detailed_latency()
+        avg_cpu_ms = sum(d.cpu_ms for d in detailed) / len(detailed) if detailed else 0
+        avg_io_ms = sum(d.io_ms for d in detailed) / len(detailed) if detailed else 0
         return {
             "cache_hit_rate": float(self.p.get_cache_hit_rate()),
             "io_operations": int(self.p.get_io_op_num()),
-            "memory_transfer_kb": float(self.p.get_memory_transfer_kb())
+            "memory_transfer_kb": float(self.p.get_memory_transfer_kb()),
+            "avg_latency_ms": float(avg_latency_ms),
+            "avg_cpu_ms": float(avg_cpu_ms),
+            "avg_io_ms": float(avg_io_ms),
+            "qps": float(self.p.get_qps(avg_latency_ms)),
+            "avg_depth_mean": float(self.p.get_avg_depth_mean()),
+            "avg_depth_std": float(self.p.get_avg_depth_std()),
         }
 
     def freeIndex(self):
