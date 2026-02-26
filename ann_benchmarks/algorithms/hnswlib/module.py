@@ -27,7 +27,7 @@ class HnswLib(BaseANN):
         index_path = os.path.join(SIM_SSD_DIR_CONTAINER, "hnswlib", "index")
         os.makedirs(os.path.join(SIM_SSD_DIR_CONTAINER, "hnswlib"), exist_ok=True)
         self.p.save_index(index_path)
-        self.p.load_index(index_path, cache_size=75 * 1024 * 1024, thread_num=6)
+        self.p.load_index(index_path, cache_size=125 * 1024 * 1024, thread_num=6)
 
     def set_query_arguments(self, ef):
         self.p.reset_metrics_counter()
@@ -68,7 +68,7 @@ class HnswLib(BaseANN):
             "avg_latency_ms": float(avg_latency_ms),
             "avg_cpu_ms": float(avg_cpu_ms),
             "avg_io_ms": float(avg_io_ms),
-            "qps": float(self.p.get_qps(avg_latency_ms)),
+            "cpu_qps": float(self.p.get_qps(avg_latency_ms, 6)),
             "avg_depth_mean": float(self.p.get_avg_depth_mean()),
             "avg_depth_std": float(self.p.get_avg_depth_std()),
         }

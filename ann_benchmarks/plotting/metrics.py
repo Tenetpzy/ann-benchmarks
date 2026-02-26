@@ -219,4 +219,34 @@ all_metrics = {
         "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb"),
         "worst": float("inf"),
     },
+    "avg_latency_ms": {
+        "description": "Average Latency (ms)",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("avg_latency_ms"),
+        "worst": float("inf"),
+    },
+    "avg_cpu_ms": {
+        "description": "Average CPU Time (ms)",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("avg_cpu_ms"),
+        "worst": float("inf"),
+    },
+    "avg_io_ms": {
+        "description": "Average I/O Time (ms)",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("avg_io_ms"),
+        "worst": float("inf"),
+    },
+    "cpu_qps": {
+        "description": "CPU QPS",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("cpu_qps"),
+        "worst": float("-inf"),
+    },
+    "avg_depth_mean": {
+        "description": "Average Depth Mean",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("avg_depth_mean"),
+        "worst": float("inf"),
+    },
+    "avg_depth_std": {
+        "description": "Average Depth Std",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("avg_depth_std"),
+        "worst": float("inf"),
+    },
 }

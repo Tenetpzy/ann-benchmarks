@@ -92,6 +92,12 @@ Results stored at `results/{dataset}/10/{algorithm}_{params}[_batch].json`:
 
 ## Common Development Tasks
 
+### Running Constraints
+You must use the following command to enable python environment before running any python command.
+```bash
+source .venv/bin/activate
+```
+
 ### Building Docker Images
 
 ```bash
