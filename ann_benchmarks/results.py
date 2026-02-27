@@ -70,16 +70,18 @@ def store_results(dataset_name: str, count: int, definition: Definition, query_a
             distances[i] = [d for n, d in ds] + [float("inf")] * (count - len(ds))
 
 
-def load_all_results(dataset: Optional[str] = None, 
-                 count: Optional[int] = None, 
-                 batch_mode: bool = False) -> Iterator[Tuple[dict, h5py.File]]:
+def load_all_results(dataset: Optional[str] = None,
+                 count: Optional[int] = None,
+                 batch_mode: Optional[bool] = False) -> Iterator[Tuple[dict, h5py.File]]:
     """
     Loads all the results from the HDF5 files in the specified path.
 
     Args:
         dataset (str, optional): The name of the dataset.
         count (int, optional): The count of records.
-        batch_mode (bool, optional): If True, the batch mode is activated.
+        batch_mode (bool, optional): If True, only load batch mode results.
+                                    If False, only load non-batch mode results.
+                                    If None, load all results regardless of batch mode.
 
     Yields:
         tuple: A tuple containing properties as a dictionary and an h5py file object.
@@ -91,7 +93,8 @@ def load_all_results(dataset: Optional[str] = None,
             try:
                 with h5py.File(os.path.join(root, filename), "r+") as f:
                     properties = dict(f.attrs)
-                    if batch_mode != properties["batch_mode"]:
+                    # Skip if batch_mode filter is specified and doesn't match
+                    if batch_mode is not None and batch_mode != properties["batch_mode"]:
                         continue
                     yield properties, f
             except Exception:

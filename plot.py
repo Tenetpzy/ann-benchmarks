@@ -13,7 +13,7 @@ from ann_benchmarks.plotting.utils import (compute_metrics, create_linestyles,
 from ann_benchmarks.results import get_unique_algorithms, load_all_results
 
 
-def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles, batch):
+def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
     xm, ym = (metrics[xn], metrics[yn])
     # Now generate each plot
     handles = []
@@ -120,23 +120,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--raw", help="Show raw results (not just Pareto frontier) in faded colours", action="store_true"
     )
-    parser.add_argument("--batch", help="Plot runs in batch mode", action="store_true")
     parser.add_argument("--recompute", help="Clears the cache and recomputes the metrics", action="store_true")
     args = parser.parse_args()
 
     if not args.output:
-        args.output = "results/%s.png" % (args.dataset + ("-batch" if args.batch else ""))
+        args.output = "results/%s.png" % args.dataset
         print("writing output to %s" % args.output)
 
     dataset, _ = get_dataset(args.dataset)
     count = int(args.count)
     unique_algorithms = get_unique_algorithms()
-    results = load_all_results(args.dataset, count, args.batch)
+    # Load all results, both batch and non-batch
+    results = load_all_results(args.dataset, count, batch_mode=None)
     linestyles = create_linestyles(sorted(unique_algorithms))
     runs = compute_metrics(np.array(dataset["distances"]), results, args.x_axis, args.y_axis, args.recompute)
     if not runs:
         raise Exception("Nothing to plot")
 
     create_plot(
-        runs, args.raw, args.x_scale, args.y_scale, args.x_axis, args.y_axis, args.output, linestyles, args.batch
+        runs, args.raw, args.x_scale, args.y_scale, args.x_axis, args.y_axis, args.output, linestyles
     )
