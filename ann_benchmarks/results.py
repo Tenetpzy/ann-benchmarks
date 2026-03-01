@@ -72,7 +72,8 @@ def store_results(dataset_name: str, count: int, definition: Definition, query_a
 
 def load_all_results(dataset: Optional[str] = None,
                  count: Optional[int] = None,
-                 batch_mode: Optional[bool] = False) -> Iterator[Tuple[dict, h5py.File]]:
+                 batch_mode: Optional[bool] = False,
+                 algo_filter: Optional[Set[str]] = None) -> Iterator[Tuple[dict, h5py.File]]:
     """
     Loads all the results from the HDF5 files in the specified path.
 
@@ -82,11 +83,16 @@ def load_all_results(dataset: Optional[str] = None,
         batch_mode (bool, optional): If True, only load batch mode results.
                                     If False, only load non-batch mode results.
                                     If None, load all results regardless of batch mode.
+        algo_filter (set, optional): If provided, only load results from these algorithm directories.
 
     Yields:
         tuple: A tuple containing properties as a dictionary and an h5py file object.
     """
-    for root, _, files in os.walk(build_result_filepath(dataset, count), followlinks=True):
+    base_path = build_result_filepath(dataset, count)
+    for root, dirs, files in os.walk(base_path, followlinks=True):
+        # Filter directories if algo_filter is specified and non-empty
+        if algo_filter:
+            dirs[:] = [d for d in dirs if d in algo_filter]
         for filename in files:
             if os.path.splitext(filename)[-1] != ".hdf5":
                 continue

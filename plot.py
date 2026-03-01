@@ -13,7 +13,28 @@ from ann_benchmarks.plotting.utils import (compute_metrics, create_linestyles,
 from ann_benchmarks.results import get_unique_algorithms, load_all_results
 
 
-def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
+def parse_algorithm_specs(specs):
+    """Parse algorithm specs like 'algo' or 'algo:name' into (algo_names, legend_names).
+
+    Args:
+        specs: List of algorithm specification strings
+
+    Returns:
+        tuple: (set of algorithm names, dict mapping algo to custom legend name)
+    """
+    algo_names = set()
+    legend_names = {}
+    for spec in (specs or []):
+        if ':' in spec:
+            algo, name = spec.split(':', 1)
+            algo_names.add(algo)
+            legend_names[algo] = name
+        else:
+            algo_names.add(spec)
+    return algo_names, legend_names
+
+
+def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles, legend_names=None):
     xm, ym = (metrics[xn], metrics[yn])
     # Now generate each plot
     handles = []
@@ -32,15 +53,16 @@ def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
         min_x = min([min_x] + [x for x in xs if x > 0])
         max_x = max([max_x] + [x for x in xs if x < 1])
         color, faded, linestyle, marker = linestyles[algo]
+        label = legend_names.get(algo, algo) if legend_names else algo
         (handle,) = plt.plot(
-            xs, ys, "-", label=algo, color=color, ms=7, mew=3, lw=3, marker=marker
+            xs, ys, "-", label=label, color=color, ms=7, mew=3, lw=3, marker=marker
         )
         handles.append(handle)
         if raw:
             (handle2,) = plt.plot(
                 axs, ays, "-", label=algo, color=faded, ms=5, mew=2, lw=2, marker=marker
             )
-        labels.append(algo)
+        labels.append(label)
 
     ax = plt.gca()
     ax.set_ylabel(ym["description"])
@@ -121,6 +143,11 @@ if __name__ == "__main__":
         "--raw", help="Show raw results (not just Pareto frontier) in faded colours", action="store_true"
     )
     parser.add_argument("--recompute", help="Clears the cache and recomputes the metrics", action="store_true")
+    parser.add_argument(
+        "--algorithm", nargs="+",
+        help="Filter to specific algorithms with optional legend names. "
+             "Format: algo[:name] (e.g., csd-normal-2t or csd-normal-2t:\"CSD Normal\")"
+    )
     args = parser.parse_args()
 
     if not args.output:
@@ -129,14 +156,24 @@ if __name__ == "__main__":
 
     dataset, _ = get_dataset(args.dataset)
     count = int(args.count)
-    unique_algorithms = get_unique_algorithms()
-    # Load all results, both batch and non-batch
-    results = load_all_results(args.dataset, count, batch_mode=None)
+
+    # Parse algorithm filter and custom legend names
+    algo_filter, legend_names = parse_algorithm_specs(args.algorithm)
+
+    # Load all results, both batch and non-batch, with optional filter
+    results = load_all_results(args.dataset, count, batch_mode=None, algo_filter=algo_filter)
+
+    # Get unique algorithms for linestyles (use filtered if specified, otherwise all)
+    if algo_filter:
+        unique_algorithms = algo_filter
+    else:
+        unique_algorithms = get_unique_algorithms()
+
     linestyles = create_linestyles(sorted(unique_algorithms))
     runs = compute_metrics(np.array(dataset["distances"]), results, args.x_axis, args.y_axis, args.recompute)
     if not runs:
         raise Exception("Nothing to plot")
 
     create_plot(
-        runs, args.raw, args.x_scale, args.y_scale, args.x_axis, args.y_axis, args.output, linestyles
+        runs, args.raw, args.x_scale, args.y_scale, args.x_axis, args.y_axis, args.output, linestyles, legend_names
     )
