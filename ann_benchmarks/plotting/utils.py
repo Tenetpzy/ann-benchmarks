@@ -149,7 +149,7 @@ def get_left_right(metric):
 
 
 def get_plot_label(xm, ym):
-    template = "%(xlabel)s-%(ylabel)s tradeoff - %(updown)s and" " to the %(leftright)s is better"
+    template = "%(xlabel)s-%(ylabel)s - %(updown)s and" " to the %(leftright)s is better"
     return template % {
         "xlabel": xm["description"],
         "ylabel": ym["description"],

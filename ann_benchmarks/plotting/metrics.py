@@ -211,12 +211,12 @@ all_metrics = {
     },
     "io_operations": {
         "description": "Average I/O Operations",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("io_operations"),
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("io_operations") / 100000,
         "worst": float("inf"),
     },
     "memory_transfer_kb": {
         "description": "Memory Transfer (KB)",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb"),
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb") / 10000,
         "worst": float("inf"),
     },
     "avg_latency_ms": {
@@ -245,8 +245,8 @@ all_metrics = {
         "worst": float("inf"),
     },
     "avg_depth_std": {
-        "description": "Average Depth Std",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("avg_depth_std"),
+        "description": "Channel I/O Number Std",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: np.sqrt(run_attrs.get("avg_depth_std")),
         "worst": float("inf"),
     },
 }

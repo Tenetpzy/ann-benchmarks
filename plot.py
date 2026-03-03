@@ -1,6 +1,18 @@
 import matplotlib as mpl
 
 mpl.use("Agg")  # noqa
+
+# 四号字约为 14 磅
+FONT_SIZE = 14
+mpl.rcParams.update({
+    'font.size': FONT_SIZE,
+    'axes.titlesize': FONT_SIZE,
+    'axes.labelsize': FONT_SIZE,
+    'xtick.labelsize': FONT_SIZE,
+    'ytick.labelsize': FONT_SIZE,
+    'legend.fontsize': FONT_SIZE,
+})
+
 import argparse
 
 import matplotlib.pyplot as plt
@@ -94,7 +106,7 @@ def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles, leg
     ax.set_title(get_plot_label(xm, ym))
     plt.gca().get_position()
     # plt.gca().set_position([box.x0, box.y0, box.width * 0.8, box.height])
-    ax.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5), prop={"size": 9})
+    ax.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
     plt.grid(visible=True, which="major", color="0.65", linestyle="-")
     plt.setp(ax.get_xminorticklabels(), visible=True)
 
