@@ -117,7 +117,8 @@ def compute_metrics_all_runs(dataset, res, recompute=False):
 
 def generate_n_colors(n):
     vs = np.linspace(0.3, 0.9, 7)
-    colors = [(0.9, 0.4, 0.4, 1.0)]
+    # 优先红、蓝，然后其他颜色按距离最大化生成
+    colors = [(0.9, 0.4, 0.4, 1.0), (0.2, 0.4, 0.8, 1.0)]  # 红色、蓝色
 
     def euclidean(a, b):
         return sum((x - y) ** 2 for x, y in zip(a, b))

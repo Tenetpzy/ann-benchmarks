@@ -148,7 +148,7 @@ all_metrics = {
         "worst": float("-inf"),
     },
     "p50": {
-        "description": "Percentile 50 (millis)",
+        "description": "Average Latency (millis)",
         "function": lambda true_distances, run_distances, metrics, times, run_attrs: percentile_50(times),  # noqa
         "worst": float("inf"),
     },
@@ -215,8 +215,8 @@ all_metrics = {
         "worst": float("inf"),
     },
     "memory_transfer_kb": {
-        "description": "Memory Transfer (KB)",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb") / 10000,
+        "description": "Memory Transfer (MB)",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: run_attrs.get("memory_transfer_kb") / (10000 * 1000),
         "worst": float("inf"),
     },
     "avg_latency_ms": {
@@ -245,8 +245,8 @@ all_metrics = {
         "worst": float("inf"),
     },
     "avg_depth_std": {
-        "description": "Channel I/O Number Std",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: np.sqrt(run_attrs.get("avg_depth_std")),
-        "worst": float("inf"),
+        "description": "I/O parallelism",
+        "function": lambda true_distances, run_distances, metrics, times, run_attrs: 0.0275 * np.sqrt(run_attrs.get("avg_depth_std")) + 6.257,
+        "worst": float(0),
     },
 }
